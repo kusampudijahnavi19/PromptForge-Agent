@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PromptForge Agent</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        darkbg: '#111318',
+                        cardbg: '#1A1D24',
+                        accent: '#2563eb',
+                        question: '#fcd34d'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #111318; color: #f8fafc; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1A1D24; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        textarea:focus, select:focus, input:focus { outline: none; box-shadow: none; border-color: transparent; }
+        .recording { animation: pulse-red 1.5s infinite; color: #ef4444 !important; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <div class="max-w-5xl mx-auto px-4 py-12">
+        
+        <!-- Header Section -->
+        <header class="text-center mb-12">
+            <div class="inline-flex items-center justify-center space-x-2 text-xs font-semibold text-blue-400 bg-blue-500/10 px-3 py-1.5 rounded-full mb-6 border border-blue-500/20">
+                <span>⚡ Agentic • Token-Optimized • Voice-Enabled</span>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500 tracking-tight mb-4">
+                PromptForge Agent
+            </h1>
+            <p class="text-slate-400 text-sm md:text-base max-w-xl mx-auto leading-relaxed">
+                Stop guessing. Let our AI ask you questions, compress your token costs, and reverse engineer master prompts.
+            </p>
+
+            <!-- Toggle Buttons -->
+            <div class="flex items-center justify-center gap-2 mt-8 bg-[#1A1D24] p-1 rounded-full w-max mx-auto border border-slate-800">
+                <button id="btnAgentic" onclick="switchTab('agentic')" class="bg-accent text-white px-6 py-2 rounded-full text-sm font-semibold shadow-[0_0_15px_rgba(37,99,235,0.4)] transition-all">
+                    Agentic Optimizer
+                </button>
+                <button id="btnReverse" onclick="switchTab('reverse')" class="text-slate-400 px-6 py-2 rounded-full text-sm font-medium hover:text-slate-200 transition-all">
+                    Reverse Engineer
+                </button>
+            </div>
+        </header>
+
+        <!-- Global Loading & Errors -->
+        <div id="loadingIndicator" class="hidden flex flex-col items-center justify-center py-6 fade-in fixed top-4 right-4 bg-slate-800 rounded-xl p-4 shadow-2xl z-50 border border-slate-700">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent mb-2"></div>
+            <p id="loadingText" class="text-slate-300 font-medium text-xs">Processing...</p>
+        </div>
+        <div id="errorMessage" class="hidden bg-red-500/10 border border-red-500/50 p-4 mb-8 rounded-xl fade-in ml-6">
+            <div class="flex items-center text-red-400">
+                <i class="fa-solid fa-circle-exclamation mr-3"></i>
+                <p class="text-sm font-medium" id="errorText"></p>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB 1: AGENTIC OPTIMIZER -->
+        <!-- ========================================== -->
+        <div id="agenticView" class="fade-in">
+            <!-- Step 1: Initial Task Input Section -->
+            <section id="taskSection" class="relative mb-12">
+                <div class="absolute left-0 top-12 bottom-0 w-1 bg-accent rounded-full"></div>
+                <div class="pl-6">
+                    <h2 class="flex items-center text-lg font-bold text-white mb-4">
+                        <span class="bg-accent text-white w-6 h-6 rounded-full flex items-center justify-center text-xs mr-3 font-bold shadow-lg shadow-blue-500/30">1</span>
+                        Enter your core idea
+                    </h2>
+                    
+                    <div class="bg-cardbg border border-slate-800 rounded-2xl overflow-hidden shadow-2xl transition-all focus-within:border-slate-700">
+                        <div class="relative">
+                            <textarea id="taskInput" rows="3" class="w-full bg-transparent border-none text-slate-200 p-5 pb-12 resize-none text-base placeholder-slate-600 focus:ring-0" placeholder="e.g., Write a python script to scrape a website..."></textarea>
+                            
+                            <!-- Voice Transcription Button -->
+                            <button id="micBtn" onclick="toggleRecording()" class="absolute right-4 top-4 w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 transition-all shadow-md">
+                                <i id="micIcon" class="fa-solid fa-microphone text-sm"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="bg-[#15181e] border-t border-slate-800/50 px-4 py-3 flex justify-between items-center">
+                            <div class="flex items-center space-x-2 text-slate-400">
+                                <span class="text-sm font-medium">Target:</span>
+                                <select id="targetModel" class="bg-transparent border-none text-white text-sm font-medium focus:ring-0 cursor-pointer p-0 appearance-none outline-none">
+                                    <option value="ChatGPT" class="bg-cardbg">ChatGPT</option>
+                                    <option value="Claude 3.5" class="bg-cardbg">Claude 3.5</option>
+                                    <option value="Gemini 1.5" class="bg-cardbg">Gemini 1.5</option>
+                                </select>
+                                <i class="fa-solid fa-chevron-down text-[10px] ml-1"></i>
+                            </div>
+                            
+                            <button onclick="clarifyPrompt()" class="bg-accent hover:bg-blue-600 text-white font-semibold py-2 px-5 rounded-lg text-sm transition-all shadow-lg shadow-blue-500/20 flex items-center group">
+                                Analyze & Ask Me <i class="fa-solid fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 2: The Optimizer Section (Clarification Loop) -->
+            <section id="optimizerSection" class="relative fade-in mb-12 hidden">
+                <div class="absolute left-0 top-12 bottom-0 w-1 bg-amber-500 rounded-full"></div>
+                <div class="pl-6">
+                    <h2 class="flex items-center text-lg font-bold text-white mb-4">
+                        <span class="bg-amber-500 text-slate-900 w-6 h-6 rounded-full flex items-center justify-center text-xs mr-3 font-bold shadow-lg shadow-amber-500/30">2</span>
+                        Let's clarify a few things
+                    </h2>
+                    
+                    <div class="bg-cardbg border border-slate-800 rounded-2xl p-6 shadow-2xl">
+                        <div id="clarifyList" class="font-medium text-question text-base mb-4 leading-relaxed space-y-2"></div>
+
+                        <textarea id="refinementAnswer" rows="2" class="w-full rounded-xl bg-[#111318] border border-slate-700 focus:border-amber-500/50 p-4 text-slate-200 text-sm transition-colors mb-4 placeholder-slate-600" placeholder="Type your answers here to refine the logic..."></textarea>
+                        
+                        <div class="flex justify-between items-center">
+                            <div id="contextBadges" class="flex flex-wrap gap-2"></div>
+                            <button onclick="optimizePrompt()" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-2.5 px-6 rounded-xl text-sm transition-all shadow-[0_0_15px_rgba(245,158,11,0.3)] flex items-center">
+                                Forge Master Prompt <i class="fa-solid fa-hammer ml-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 3: Results Section (Prompt & Eco Prompt) -->
+            <section id="resultsSection" class="hidden space-y-6 fade-in pl-6 relative">
+                <div class="absolute left-0 top-12 bottom-0 w-1 bg-emerald-500 rounded-full"></div>
+                
+                <h2 class="flex items-center text-lg font-bold text-white mb-2">
+                    <span class="bg-emerald-500 text-slate-900 w-6 h-6 rounded-full flex items-center justify-center text-xs mr-3 font-bold shadow-lg shadow-emerald-500/30">3</span>
+                    Your Optimized Assets
+                </h2>
+
+                <!-- Analysis Banner -->
+                <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-5 mb-6 shadow-inner">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-white font-bold text-lg">Quality Score: <span id="promptScore" class="text-blue-400 text-2xl">--</span><span class="text-slate-500 text-sm">/100</span></span>
+                        <span class="text-emerald-400 font-bold text-sm bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20">
+                            <i class="fa-solid fa-leaf mr-1"></i> <span id="tokenSavings">--</span>% Token Savings
+                        </span>
+                    </div>
+                    <p id="promptAnalysis" class="text-slate-300 text-sm leading-relaxed border-t border-blue-500/20 pt-3"></p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Standard Prompt Column -->
+                    <div class="bg-cardbg rounded-2xl border border-slate-800 overflow-hidden flex flex-col shadow-2xl">
+                        <div class="bg-slate-800/50 border-b border-slate-800 px-4 py-3 flex justify-between items-center">
+                            <h3 class="font-semibold text-slate-200 text-sm flex items-center">
+                                <i class="fa-solid fa-scroll text-blue-400 mr-2"></i> Standard Master Prompt
+                            </h3>
+                            <button onclick="copyToClipboard('masterPromptOutput', this)" class="text-slate-400 hover:text-white transition-colors text-sm flex items-center">
+                                <i class="fa-regular fa-copy mr-1"></i> Copy
+                            </button>
+                        </div>
+                        <div class="p-4 flex-grow bg-[#111318]">
+                            <textarea id="masterPromptOutput" class="w-full h-full min-h-[300px] bg-transparent border-none resize-none focus:ring-0 text-sm text-slate-300 font-mono leading-relaxed"></textarea>
+                        </div>
+                        <div class="bg-[#15181e] border-t border-slate-800 p-3 flex justify-end">
+                            <button onclick="triggerSelfCorrection('standard_prompt')" class="text-red-400 hover:text-red-300 text-xs font-medium flex items-center transition-colors">
+                                <i class="fa-solid fa-circle-exclamation mr-1.5"></i> Needs fixing? (RLHF)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Eco Prompt Column -->
+                    <div class="bg-cardbg rounded-2xl border border-slate-800 overflow-hidden flex flex-col shadow-2xl">
+                        <div class="bg-slate-800/50 border-b border-slate-800 px-4 py-3 flex justify-between items-center">
+                            <h3 class="font-semibold text-slate-200 text-sm flex items-center">
+                                <i class="fa-solid fa-seedling text-emerald-400 mr-2"></i> Eco Prompt (Compressed)
+                            </h3>
+                            <button onclick="copyToClipboard('ecoPromptOutput', this)" class="text-slate-400 hover:text-white transition-colors text-sm flex items-center">
+                                <i class="fa-regular fa-copy mr-1"></i> Copy
+                            </button>
+                        </div>
+                        <div class="p-4 flex-grow bg-[#111318]">
+                            <textarea id="ecoPromptOutput" class="w-full h-full min-h-[300px] bg-transparent border-none resize-none focus:ring-0 text-sm text-emerald-100/70 font-mono leading-relaxed"></textarea>
+                        </div>
+                        <div class="bg-[#15181e] border-t border-slate-800 p-3 flex justify-end">
+                            <button onclick="triggerSelfCorrection('eco_prompt')" class="text-red-400 hover:text-red-300 text-xs font-medium flex items-center transition-colors">
+                                <i class="fa-solid fa-circle-exclamation mr-1.5"></i> Needs fixing? (RLHF)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB 2: REVERSE ENGINEER -->
+        <!-- ========================================== -->
+        <div id="reverseView" class="hidden fade-in space-y-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                
+                <!-- Text Reverse Engineering -->
+                <div class="bg-cardbg border border-slate-800 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
+                    <h3 class="text-white font-bold mb-2 flex items-center"><i class="fa-solid fa-file-lines text-blue-400 mr-2"></i>Text to Prompt</h3>
+                    <p class="text-slate-400 text-xs mb-4">Paste an essay, article, or vague idea to extract its structural prompt.</p>
+                    
+                    <textarea id="reverseTextInput" rows="6" class="w-full rounded-xl bg-[#111318] border border-slate-700 focus:border-blue-500 p-4 text-slate-200 text-sm mb-4 resize-none" placeholder="Paste target text here..."></textarea>
+                    
+                    <button onclick="reverseText()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-blue-500/20">
+                        Reverse Engineer Text <i class="fa-solid fa-magnifying-glass ml-2"></i>
+                    </button>
+                </div>
+
+                <!-- Image Reverse Engineering -->
+                <div class="bg-cardbg border border-slate-800 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-pink-600"></div>
+                    <h3 class="text-white font-bold mb-2 flex items-center"><i class="fa-solid fa-image text-purple-400 mr-2"></i>Vision to Prompt</h3>
+                    <p class="text-slate-400 text-xs mb-4">Upload an image to extract the perfect Midjourney/DALL-E prompt.</p>
+                    
+                    <div class="border-2 border-dashed border-slate-700 rounded-xl p-8 text-center mb-4 bg-[#111318] hover:border-purple-500 transition-colors relative cursor-pointer" onclick="document.getElementById('imageUpload').click()">
+                        <input type="file" id="imageUpload" accept="image/*" class="hidden" onchange="previewImage(event)">
+                        <div id="imagePlaceholder">
+                            <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-500 mb-2"></i>
+                            <p class="text-slate-400 text-sm">Click to upload image</p>
+                        </div>
+                        <img id="imagePreview" class="hidden max-h-32 mx-auto rounded-lg shadow-md" />
+                    </div>
+                    
+                    <button onclick="reverseImage()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-purple-500/20">
+                        Extract Vision Prompt <i class="fa-solid fa-eye ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Reverse Engineering Output -->
+            <div id="reverseOutputSection" class="hidden bg-cardbg rounded-2xl border border-slate-800 overflow-hidden flex flex-col shadow-2xl mt-8">
+                <div class="bg-slate-800/50 border-b border-slate-800 px-4 py-3 flex justify-between items-center">
+                    <h3 class="font-semibold text-slate-200 text-sm flex items-center">
+                        <i class="fa-solid fa-microchip text-accent mr-2"></i> Extracted Master Prompt
+                    </h3>
+                    <button onclick="copyToClipboard('reversePromptOutput', this)" class="text-slate-400 hover:text-white transition-colors text-sm flex items-center">
+                        <i class="fa-regular fa-copy mr-1"></i> Copy
+                    </button>
+                </div>
+                <div class="p-4 bg-[#111318]">
+                    <textarea id="reversePromptOutput" class="w-full min-h-[250px] bg-transparent border-none resize-none focus:ring-0 text-sm text-slate-300 font-mono leading-relaxed"></textarea>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // State Management
+        let appState = {
+            task: '',
+            contextAnswers: '',
+            standardPrompt: '',
+            ecoPrompt: '',
+            refinementCount: 0
+        };
+
+        const els = {
+            loadingIndicator: document.getElementById('loadingIndicator'),
+            loadingText: document.getElementById('loadingText'),
+            errorMessage: document.getElementById('errorMessage'),
+            errorText: document.getElementById('errorText')
+        };
+
+        // --- UI TAB SWITCHING ---
+        function switchTab(tab) {
+            hideError();
+            if(tab === 'agentic') {
+                document.getElementById('agenticView').classList.remove('hidden');
+                document.getElementById('reverseView').classList.add('hidden');
+                document.getElementById('btnAgentic').className = "bg-accent text-white px-6 py-2 rounded-full text-sm font-semibold shadow-[0_0_15px_rgba(37,99,235,0.4)] transition-all";
+                document.getElementById('btnReverse').className = "text-slate-400 px-6 py-2 rounded-full text-sm font-medium hover:text-slate-200 transition-all";
+            } else {
+                document.getElementById('agenticView').classList.add('hidden');
+                document.getElementById('reverseView').classList.remove('hidden');
+                document.getElementById
